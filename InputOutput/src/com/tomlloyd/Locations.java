@@ -7,65 +7,38 @@ public class Locations implements Map<Integer, Location> {
     private static Map<Integer, Location> locations = new LinkedHashMap<>();
 
     public static void main(String[] args) throws IOException {
-        try (BufferedWriter locFile = new BufferedWriter(new FileWriter("locations.txt"));
-             BufferedWriter dirFile = new BufferedWriter(new FileWriter("directions.txt"))) {
+
+        try (ObjectOutputStream locFile = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream("locations.dat")))) {
             for (Location location : locations.values()) {
-                locFile.write(location.getLocationId() + "," + location.getDescription() + "\n");
-                for(String direction : location.getExits().keySet()) {
-                    if (!direction.equalsIgnoreCase("Q")) {
-                        dirFile.write(location.getLocationId() + "," + direction + "," + location.getExits().get(direction) + "\n");
-                    }
-                }
+                locFile.writeObject(location);
             }
         }
+
     }
 
     static {
 
-//        try (Scanner scanner = new Scanner(new FileReader("locations_big.txt"))) {
-//            scanner.useDelimiter(",");
-//            while (scanner.hasNextLine()) {
-//                int loc = scanner.nextInt();
-//                scanner.skip(scanner.delimiter());
-//                String description = scanner.nextLine();
-//                System.out.println("Imported loc: " + loc + ": " + description);
-//                Map<String, Integer> tempExit = new HashMap<>();
-//                locations.put(loc, new Location(loc, description, tempExit));
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        try (ObjectInputStream locFile = new ObjectInputStream(new BufferedInputStream(new FileInputStream("locations.dat")))) {
+            boolean eof = false;
+            while (!eof) {
+                try {
+                    Location location = (Location) locFile.readObject();
+                    System.out.println("Read location " + location.getLocationId() + " : " + location.getDescription());
+                    System.out.println("Found " + location.getExits().size() + " exits");
 
-        try (BufferedReader locFile = new BufferedReader(new FileReader("locations_big.txt"))) {
-            String input;
-            while ((input = locFile.readLine()) != null) {
-                String[] data = input.split(",", 2);
-                int loc = Integer.parseInt(data[0]);
-                String description = data[1];
-                System.out.println("Imported loc: " + loc + ": " + description);
-                Map<String, Integer> tempExit = new LinkedHashMap<>();
-                locations.put(loc, new Location(loc, description, tempExit));
+                    locations.put(location.getLocationId(), location);
+                } catch (EOFException e) {
+                    eof = true;
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (InvalidClassException e) {
+            System.out.println("InvalidClassException " + e.getMessage());
+        } catch (IOException io) {
+            System.out.println("IO Exception " + io.getMessage());
+        } catch (ClassNotFoundException e) {
+            System.out.println("ClassNotFoundException " + e.getMessage());
         }
 
-
-        try (BufferedReader dirFile = new BufferedReader(new FileReader("directions_big.txt"))) {
-            String input;
-            while ((input = dirFile.readLine()) != null) {
-                String[] data = input.split(",");
-                int loc = Integer.parseInt(data[0]);
-                String direction = data[1];
-                int destination = Integer.parseInt(data[2]);
-
-                System.out.println(loc + ": " + direction + ": " + destination);
-                Location location = locations.get(loc);
-                location.addExit(direction, destination);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
     }
 
